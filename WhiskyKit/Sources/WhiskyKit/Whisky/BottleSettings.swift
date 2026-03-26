@@ -105,8 +105,10 @@ public struct BottleWineConfig: Codable, Equatable {
         self.windowsVersion = try container.decodeIfPresent(WinVersion.self, forKey: .windowsVersion) ?? .win10
         self.enhancedSync = try container.decodeIfPresent(EnhancedSync.self, forKey: .enhancedSync) ?? .msync
         self.avxEnabled = try container.decodeIfPresent(Bool.self, forKey: .avxEnabled) ?? false
+        self.stealthMode = try container.decodeIfPresent(Bool.self, forKey: .stealthMode) ?? false
     }
     // swiftlint:enable line_length
+    var stealthMode: Bool = false
 }
 
 public struct BottleMetalConfig: Codable, Equatable {
@@ -208,6 +210,11 @@ public struct BottleSettings: Codable, Equatable {
     public var enhancedSync: EnhancedSync {
         get { return wineConfig.enhancedSync }
         set { wineConfig.enhancedSync = newValue }
+    }
+
+    public var stealthMode: Bool {
+        get { return wineConfig.stealthMode }
+        set { wineConfig.stealthMode = newValue }
     }
 
     public var metalHud: Bool {

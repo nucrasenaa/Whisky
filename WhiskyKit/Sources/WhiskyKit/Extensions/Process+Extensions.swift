@@ -28,19 +28,25 @@ public enum ProcessOutput: Hashable {
 
 public extension Process {
     /// Run the process returning a stream output
-    func runStream(name: String, fileHandle: FileHandle?) throws -> AsyncStream<ProcessOutput> {
-        let stream = makeStream(name: name, fileHandle: fileHandle)
+    func runStream(name: String, fileHandle: FileHandle?, stealth: Bool = false) throws -> AsyncStream<ProcessOutput> {
+        let stream = makeStream(name: name, fileHandle: fileHandle, stealth: stealth)
         self.logProcessInfo(name: name)
         fileHandle?.writeInfo(for: self)
         try run()
         return stream
     }
 
-    private func makeStream(name: String, fileHandle: FileHandle?) -> AsyncStream<ProcessOutput> {
+    private func makeStream(name: String, fileHandle: FileHandle?, stealth: Bool) -> AsyncStream<ProcessOutput> {
         let pipe = Pipe()
         let errorPipe = Pipe()
-        standardOutput = pipe
-        standardError = errorPipe
+
+        if !stealth {
+            standardOutput = pipe
+            standardError = errorPipe
+        } else {
+            standardOutput = FileHandle.nullDevice
+            standardError = FileHandle.nullDevice
+        }
 
         return AsyncStream<ProcessOutput> { continuation in
             continuation.onTermination = { termination in
@@ -57,26 +63,17 @@ public extension Process {
 
             continuation.yield(.started(self))
 
-            pipe.fileHandleForReading.readabilityHandler = { pipe in
-                guard let line = pipe.nextLine() else { return }
-                continuation.yield(.message(line))
-                guard !line.isEmpty else { return }
-                Logger.wineKit.info("\(line, privacy: .public)")
-                fileHandle?.write(line: line)
-            }
-
-            errorPipe.fileHandleForReading.readabilityHandler = { pipe in
-                guard let line = pipe.nextLine() else { return }
-                continuation.yield(.error(line))
-                guard !line.isEmpty else { return }
-                Logger.wineKit.warning("\(line, privacy: .public)")
-                fileHandle?.write(line: line)
+            if !stealth {
+                self.setupReadability(for: pipe, continuation: continuation, isError: false, fileHandle: fileHandle)
+                self.setupReadability(for: errorPipe, continuation: continuation, isError: true, fileHandle: fileHandle)
             }
 
             terminationHandler = { (process: Process) in
                 do {
-                    _ = try pipe.fileHandleForReading.readToEnd()
-                    _ = try errorPipe.fileHandleForReading.readToEnd()
+                    if !stealth {
+                        _ = try pipe.fileHandleForReading.readToEnd()
+                        _ = try errorPipe.fileHandleForReading.readToEnd()
+                    }
                     try fileHandle?.close()
                 } catch {
                     Logger.wineKit.error("Error while clearing data: \(error)")
@@ -86,6 +83,23 @@ public extension Process {
                 continuation.yield(.terminated(process))
                 continuation.finish()
             }
+        }
+    }
+
+    private func setupReadability(
+        for pipe: Pipe, continuation: AsyncStream<ProcessOutput>.Continuation,
+        isError: Bool, fileHandle: FileHandle?
+    ) {
+        pipe.fileHandleForReading.readabilityHandler = { pipe in
+            guard let line = pipe.nextLine() else { return }
+            continuation.yield(isError ? .error(line) : .message(line))
+            guard !line.isEmpty else { return }
+            if isError {
+                Logger.wineKit.warning("\(line, privacy: .public)")
+            } else {
+                Logger.wineKit.info("\(line, privacy: .public)")
+            }
+            fileHandle?.write(line: line)
         }
     }
 

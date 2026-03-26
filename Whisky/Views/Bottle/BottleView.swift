@@ -66,6 +66,15 @@ struct BottleView: View {
                     Button("button.cDrive") {
                         bottle.openCDrive()
                     }
+                    Button("button.killBottle") {
+                        Task(priority: .userInitiated) {
+                            do {
+                                try Wine.killBottle(bottle: bottle)
+                            } catch {
+                                print("Failed to kill bottle: \(error)")
+                            }
+                        }
+                    }
                     Button("button.terminal") {
                         bottle.openTerminal()
                     }

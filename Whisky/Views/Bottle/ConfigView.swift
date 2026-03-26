@@ -34,6 +34,7 @@ struct ConfigView: View {
     @State private var winVersionLoadingState: LoadingState = .loading
     @State private var buildVersionLoadingState: LoadingState = .loading
     @State private var retinaModeLoadingState: LoadingState = .loading
+    @State private var stealthModeLoadingState: LoadingState = .loading
     @State private var dpiConfigLoadingState: LoadingState = .loading
     @State private var dpiSheetPresented: Bool = false
     @AppStorage("wineSectionExpanded") private var wineSectionExpanded: Bool = true
@@ -78,6 +79,21 @@ struct ConfigView: View {
                                 } catch {
                                     print("Failed to change build version")
                                     retinaModeLoadingState = .failed
+                                }
+                            }
+                        })
+                }
+                SettingItemView(title: "config.stealthMode", loadingState: stealthModeLoadingState) {
+                    Toggle("config.stealthMode", isOn: $bottle.settings.stealthMode)
+                        .onChange(of: bottle.settings.stealthMode, { _, newValue in
+                            Task(priority: .userInitiated) {
+                                stealthModeLoadingState = .modifying
+                                do {
+                                    try await Wine.applyStealthMode(bottle: bottle, enabled: newValue)
+                                    stealthModeLoadingState = .success
+                                } catch {
+                                    print("Failed to apply stealth mode")
+                                    stealthModeLoadingState = .failed
                                 }
                             }
                         })
@@ -214,6 +230,7 @@ struct ConfigView: View {
                     dpiConfigLoadingState = .success
                 }
             }
+            stealthModeLoadingState = .success
         }
         .onChange(of: bottle.settings.windowsVersion) { _, newValue in
             if winVersionLoadingState == .success {

@@ -23,6 +23,7 @@ struct WinetricksView: View {
     var bottle: Bottle
     @State private var winetricks: [WinetricksCategory]?
     @State private var selectedTrick: UUID?
+    @State private var searchText = ""
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -30,6 +31,26 @@ struct WinetricksView: View {
             VStack {
                 Text("winetricks.title")
                     .font(.title)
+
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("winetricks.filter", text: $searchText)
+                        .textFieldStyle(.plain)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(6)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(8)
+                .padding(.horizontal)
             }
             .padding(.bottom)
 
@@ -37,7 +58,13 @@ struct WinetricksView: View {
             if let winetricks = winetricks {
                 TabView {
                     ForEach(winetricks, id: \.category) { category in
-                        Table(category.verbs, selection: $selectedTrick) {
+                        let filteredVerbs = category.verbs.filter {
+                            searchText.isEmpty ||
+                            $0.name.localizedCaseInsensitiveContains(searchText) ||
+                            $0.description.localizedCaseInsensitiveContains(searchText)
+                        }
+
+                        Table(filteredVerbs, selection: $selectedTrick) {
                             TableColumn("winetricks.table.name", value: \.name)
                             TableColumn("winetricks.table.description", value: \.description)
                         }
