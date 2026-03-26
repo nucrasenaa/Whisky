@@ -117,7 +117,7 @@ struct BottleView: View {
             .onAppear {
                 updateStartMenu()
             }
-            .disabled(!bottle.isAvailable)
+            .disabled(bottle.inFlight)
             .navigationTitle(bottle.settings.name)
             .sheet(isPresented: $showWinetricksSheet) {
                 WinetricksView(bottle: bottle)

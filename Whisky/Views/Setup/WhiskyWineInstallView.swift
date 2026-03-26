@@ -51,13 +51,11 @@ struct WhiskyWineInstallView: View {
         }
         .frame(width: 400, height: 200)
         .onAppear {
-            Task.detached {
+            Task {
                 await WhiskyWineInstaller.install(from: tarLocation)
-                await MainActor.run {
-                    installing = false
-                }
-                sleep(2)
-                await proceed()
+                installing = false
+                try? await Task.sleep(nanoseconds: 2 * 1_000_000_000)
+                proceed()
             }
         }
     }

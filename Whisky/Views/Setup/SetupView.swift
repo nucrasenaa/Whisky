@@ -20,6 +20,7 @@ import SwiftUI
 
 enum SetupStage {
     case rosetta
+    case whiskyWineSelect
     case whiskyWineDownload
     case whiskyWineInstall
 }
@@ -27,6 +28,8 @@ enum SetupStage {
 struct SetupView: View {
     @State private var path: [SetupStage] = []
     @State var tarLocation: URL = URL(fileURLWithPath: "")
+    @State var engineURL: URL = URL(string: "https://data.getwhisky.app/Wine/Libraries.tar.gz")
+                                ?? URL(fileURLWithPath: "")
     @Binding var showSetup: Bool
     var firstTime: Bool = true
 
@@ -39,8 +42,10 @@ struct SetupView: View {
                         switch stage {
                         case .rosetta:
                             RosettaView(path: $path, showSetup: $showSetup)
+                        case .whiskyWineSelect:
+                            WhiskyWineSelectView(engineURL: $engineURL, path: $path)
                         case .whiskyWineDownload:
-                            WhiskyWineDownloadView(tarLocation: $tarLocation, path: $path)
+                            WhiskyWineDownloadView(engineURL: engineURL, tarLocation: $tarLocation, path: $path)
                         case .whiskyWineInstall:
                             WhiskyWineInstallView(tarLocation: $tarLocation, path: $path, showSetup: $showSetup)
                         }

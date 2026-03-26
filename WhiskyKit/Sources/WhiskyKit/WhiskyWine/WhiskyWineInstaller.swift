@@ -41,14 +41,42 @@ public class WhiskyWineInstaller {
                 try FileManager.default.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
             } else {
                 // Recreate it
-                try FileManager.default.removeItem(at: applicationFolder)
-                try FileManager.default.createDirectory(at: applicationFolder, withIntermediateDirectories: true)
+                try? FileManager.default.removeItem(at: libraryFolder)
+                try FileManager.default.createDirectory(at: libraryFolder, withIntermediateDirectories: true)
             }
 
             try Tar.untar(tarBall: from, toURL: applicationFolder)
-            try FileManager.default.removeItem(at: from)
+
+            // Check if we need to move files if they were double-nested or in a bundle
+            let wswineBundle = applicationFolder.appending(path: "wswine.bundle")
+            let targetWineFolder = libraryFolder.appending(path: "Wine")
+
+            if FileManager.default.fileExists(atPath: wswineBundle.path) {
+                // Move contents of wswine.bundle to Libraries/Wine
+                try? FileManager.default.removeItem(at: targetWineFolder)
+                try FileManager.default.moveItem(at: wswineBundle, to: targetWineFolder)
+            }
+
+            if whiskyWineVersion() == nil {
+                createDefaultVersionPlist()
+            }
+
+            try? FileManager.default.removeItem(at: from)
         } catch {
             print("Failed to install WhiskyWine: \(error)")
+        }
+    }
+
+    private static func createDefaultVersionPlist() {
+        let versionPlist = libraryFolder
+            .appending(path: "WhiskyWineVersion")
+            .appendingPathExtension("plist")
+
+        let info = WhiskyWineVersion(version: SemanticVersion(1, 0, 0))
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .xml
+        if let data = try? encoder.encode(info) {
+            try? data.write(to: versionPlist)
         }
     }
 
