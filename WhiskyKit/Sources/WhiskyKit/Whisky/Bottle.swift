@@ -26,7 +26,11 @@ public final class Bottle: ObservableObject, Equatable, Hashable, Identifiable, 
     public let url: URL
     private let metadataURL: URL
     @Published public var settings: BottleSettings {
-        didSet { saveSettings() }
+        didSet {
+            // If settings object itself is replaced, save it.
+            // If internal properties of settings change, BottleSettings's objectWillChange will handle it.
+            saveSettings()
+        }
     }
     @Published public var programs: [Program] = []
     @Published public var inFlight: Bool = false

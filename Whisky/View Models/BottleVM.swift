@@ -50,15 +50,17 @@ final class BottleVM: ObservableObject, @unchecked Sendable {
 
                 await MainActor.run {
                     self.bottles.append(bottle)
+                    bottle.settings.windowsVersion = winVersion
+                    bottle.settings.name = bottleName
                 }
 
-                bottle.settings.windowsVersion = winVersion
-                bottle.settings.name = bottleName
                 try await Wine.changeWinVersion(bottle: bottle, win: winVersion)
-                let wineVer = try await Wine.wineVersion()
-                bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(0, 0, 0)
-                // Add record
+                let wineVer = (try? await Wine.wineVersion()) ?? "8.0"
+                // Finalize bottle on Main thread
                 await MainActor.run {
+                    bottle.settings.wineVersion = SemanticVersion(wineVer) ?? SemanticVersion(8, 0, 0)
+                    bottle.inFlight = false
+                    bottle.isAvailable = true
                     self.bottlesList.paths.append(newBottleDir)
                     self.loadBottles()
                 }

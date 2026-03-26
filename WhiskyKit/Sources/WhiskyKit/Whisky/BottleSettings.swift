@@ -198,7 +198,10 @@ public struct BottleSettings: Codable, Equatable {
     /// The pinned programs on this bottle
     public var pins: [PinnedProgram] {
         get { return info.pins }
-        set { info.pins = newValue }
+        set {
+            info.pins = newValue
+            // Any modification of the array itself will trigger the Bottle published property
+        }
     }
 
     /// The blocked applicaitons on this bottle
